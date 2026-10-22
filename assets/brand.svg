@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- StremioBrew mark: the webOS Homebrew Channel mug (white line art), filled with a
+       purple "drink" under a foam wave, a play triangle in it, and rising bubbles
+       (one in webosbrew teal). -->
+  <defs>
+    <linearGradient id="sbLiq" x1="0" y1="0" x2=".35" y2="1">
+      <stop offset="0" stop-color="#a17bff"/><stop offset=".55" stop-color="#7148f5"/><stop offset="1" stop-color="#3f25d6"/>
+    </linearGradient>
+    <linearGradient id="sbTeal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#05e6c8"/><stop offset="1" stop-color="#009fcf"/>
+    </linearGradient>
+    <clipPath id="sbGlass"><path d="M58 60 C60 112 57 166 63 197 C67 220 84 232 108 233 L148 233 C172 232 189 220 193 197 C199 166 196 112 198 60 Z"/></clipPath>
+  </defs>
+  <g clip-path="url(#sbGlass)">
+    <rect x="40" y="80" width="180" height="170" fill="url(#sbLiq)"/>
+    <path d="M40 98 C58 84 76 84 96 96 C116 108 136 106 154 94 C172 82 190 84 216 96 L216 60 L40 60 Z" fill="#fff"/>
+    <circle cx="86" cy="196" r="7" fill="#fff" opacity=".45"/>
+    <circle cx="78" cy="148" r="10" fill="#fff" opacity=".7"/>
+    <circle cx="176" cy="134" r="13" fill="url(#sbTeal)"/>
+    <circle cx="170" cy="206" r="6" fill="#fff" opacity=".5"/>
+    <path d="M112 136 L112 194 Q112 202 119 198 L163 172 Q170 167 163 162 L119 132 Q112 128 112 136 Z" fill="#fff"/>
+  </g>
+  <path d="M58 46 C60 108 56 166 63 197 C67 220 84 232 108 233 L148 233 C172 232 189 220 193 197 C200 166 196 108 198 46" fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round"/>
+  <path d="M198 92 C232 86 240 110 238 134 C236 162 220 172 196 168" fill="none" stroke="#fff" stroke-width="13" stroke-linecap="round"/>
+</svg>

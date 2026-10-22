@@ -1,0 +1,33 @@
+{
+  "paging": {
+    "page": 1,
+    "count": 1,
+    "maxPage": 1,
+    "itemsTotal": 1
+  },
+  "packages": [
+    {
+      "id": "tv.stremiobrew.app",
+      "title": "StremioBrew",
+      "iconUri": "https://simussu9-wq.github.io/stremiobrew/icon.png",
+      "pool": "main",
+      "manifestUrl": "https://simussu9-wq.github.io/stremiobrew/api/apps/tv.stremiobrew.app/manifest.json",
+      "shortDescription": "Stremio-compatible client for rooted LG webOS TVs (webOS 3+).",
+      "fullDescriptionUrl": "api/apps/tv.stremiobrew.app/full_description.html",
+      "manifest": {
+        "id": "tv.stremiobrew.app",
+        "version": "2.0.0",
+        "type": "web",
+        "title": "StremioBrew",
+        "appDescription": "Stremio-compatible client for rooted LG webOS TVs (webOS 3+): your own account and addons, debrid and P2P playback, subtitles, 11 languages. Unofficial.",
+        "iconUri": "https://simussu9-wq.github.io/stremiobrew/icon.png",
+        "sourceUrl": "https://github.com/simussu9-wq/stremiobrew",
+        "rootRequired": true,
+        "ipkUrl": "https://simussu9-wq.github.io/stremiobrew/tv.stremiobrew.app_2.0.0_all.ipk",
+        "ipkHash": {
+          "sha256": "ae406393b997d263a081178380a2a1389aa191ba3b7d113a41703da533cfef7d"
+        }
+      }
+    }
+  ]
+}

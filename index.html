@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StremioBrew — Stremio for older LG webOS TVs</title>
+<meta name="description" content="StremioBrew is a free, unofficial Stremio client for rooted LG TVs on webOS 3 and later. Your own Stremio account and addons, debrid and P2P playback, subtitles with auto-sync, 11 languages. Installs from the Homebrew Channel.">
+<link rel="canonical" href="https://simussu9-wq.github.io/stremiobrew/">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta name="theme-color" content="#120f26">
+<meta name="keywords" content="Stremio, LG TV, webOS, webOS 3, webOS 4, Homebrew Channel, rooted TV, Stremio app, StremioBrew">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="StremioBrew">
+<meta property="og:title" content="StremioBrew — Stremio for older LG webOS TVs">
+<meta property="og:description" content="A free, unofficial Stremio client for rooted LG TVs on webOS 3 and later. Your account, your addons. Installs from the Homebrew Channel.">
+<meta property="og:url" content="https://simussu9-wq.github.io/stremiobrew/">
+<meta property="og:image" content="https://simussu9-wq.github.io/stremiobrew/site/og.jpg">
+<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="StremioBrew's Home screen on an LG TV">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="StremioBrew — Stremio for older LG webOS TVs">
+<meta name="twitter:description" content="A free, unofficial Stremio client for rooted LG TVs on webOS 3 and later.">
+<meta name="twitter:image" content="https://simussu9-wq.github.io/stremiobrew/site/og.jpg">
+<link rel="icon" href="app/icon.png"><link rel="apple-touch-icon" href="app/icon.png">
+<link rel="preload" href="site/fonts/outfit-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"StremioBrew","applicationCategory":"MultimediaApplication","operatingSystem":"LG webOS 3.0 or later (rooted, Homebrew Channel)","url":"https://simussu9-wq.github.io/stremiobrew/","description":"An unofficial Stremio client for older, rooted LG webOS TVs.","image":"https://simussu9-wq.github.io/stremiobrew/site/og.jpg","screenshot":["https://simussu9-wq.github.io/stremiobrew/site/shots/home.jpg","https://simussu9-wq.github.io/stremiobrew/site/shots/title.jpg","https://simussu9-wq.github.io/stremiobrew/site/shots/search.jpg"],"softwareVersion":"2.0.0","license":"https://www.gnu.org/licenses/gpl-3.0.html","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"codeRepository":"https://github.com/simussu9-wq/stremiobrew","installUrl":"https://simussu9-wq.github.io/stremiobrew/apps.json"}
+</script>
+<style>
+@font-face{font-family:Outfit;font-weight:100 900;font-display:swap;src:url(site/fonts/outfit-latin-wght-normal.woff2) format('woff2')}
+@font-face{font-family:Inter;font-weight:400;font-display:swap;src:url(app/fonts/inter-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:Inter;font-weight:600;font-display:swap;src:url(app/fonts/inter-latin-600-normal.woff2) format('woff2')}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;min-height:100vh;background:#120f26;color:#fff;font:400 16px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:#fff}
+.d{font-family:Outfit,Inter,system-ui,sans-serif}
+/* colour behind the glass: lights that drift and breathe */
+.sky{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:radial-gradient(120% 80% at 50% 120%,#1b1540,#120f26 60%)}
+.sky i{position:absolute;width:72vmax;height:72vmax;border-radius:50%;will-change:transform;animation:drift 16s ease-in-out infinite alternate}
+.sky i:nth-child(1){left:-22vmax;top:-30vmax;background:radial-gradient(closest-side,rgba(130,96,255,.85),rgba(130,96,255,0))}
+.sky i:nth-child(2){right:-26vmax;top:-20vmax;background:radial-gradient(closest-side,rgba(34,211,238,.6),rgba(34,211,238,0));animation-duration:21s;animation-delay:-7s}
+.sky i:nth-child(3){left:18vw;bottom:-46vmax;background:radial-gradient(closest-side,rgba(244,114,182,.6),rgba(244,114,182,0));animation-duration:24s;animation-delay:-13s}
+.sky i:nth-child(4){right:4vw;bottom:-30vmax;width:52vmax;height:52vmax;background:radial-gradient(closest-side,rgba(251,191,36,.42),rgba(251,191,36,0));animation-duration:19s;animation-delay:-3s}
+@keyframes drift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(7vw,-5vh) scale(1.18)}100%{transform:translate(14vw,8vh) scale(.95)}}
+.glass{position:relative;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.17);box-shadow:inset 0 1px 0 rgba(255,255,255,.24),0 24px 70px rgba(0,0,0,.38);backdrop-filter:blur(26px) saturate(170%);-webkit-backdrop-filter:blur(26px) saturate(170%)}
+.page{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 24px 56px}
+nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
+.brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:21px;letter-spacing:-.3px;text-decoration:none}
+.brand img{width:38px;height:38px;transition:transform .4s cubic-bezier(.2,.8,.2,1)}
+.brand:hover img{transform:rotate(-8deg) scale(1.08)}
+nav a.src{text-decoration:none;font-weight:600;font-size:14px;padding:9px 16px;border-radius:999px;transition:background .2s,transform .2s}
+nav a.src:hover{background:rgba(255,255,255,.16);transform:translateY(-1px)}
+.hero{display:grid;grid-template-columns:minmax(0,10fr) minmax(0,13fr);gap:48px;align-items:center;padding:34px 0 10px}
+.hero>div{min-width:0} /* the long link scrolls inside its box instead of widening the column */
+.kick{display:inline-block;margin-bottom:16px;padding:6px 12px;border-radius:999px;font-size:12.5px;font-weight:600;letter-spacing:.4px;color:rgba(255,255,255,.85)}
+h1{margin:0 0 14px;font-size:clamp(42px,5.4vw,64px);line-height:.98;font-weight:700;letter-spacing:-1.6px}
+h1 b{font-weight:700;color:#c9b8ff}
+.hero p{margin:0 0 24px;max-width:430px;color:rgba(255,255,255,.78);font-size:17px}
+.link{padding:16px 16px 14px;border-radius:20px;overflow:hidden}
+.link:after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,rgba(255,255,255,0),rgba(255,255,255,.14),rgba(255,255,255,0));transform:skewX(-18deg);animation:sheen 7s ease-in-out 2.2s infinite;pointer-events:none}
+@keyframes sheen{0%,70%{left:-60%}100%{left:130%}}
+.link small{display:block;margin:0 2px 8px;font-size:12px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;color:rgba(255,255,255,.7)}
+.link .row{display:flex;gap:8px}
+.link code{flex:1;min-width:0;padding:12px 14px;border-radius:12px;background:rgba(0,0,0,.34);font:600 14px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere} /* the whole link always shows: it wraps after github.io/ when it has to */
+.link code span{white-space:nowrap}
+.link .row{align-items:stretch}.link button{flex:none;padding:0 20px;border:0;border-radius:12px;background:#fff;color:#1a1340;font:600 14.5px Outfit,Inter,system-ui,sans-serif;cursor:pointer;transition:transform .15s ease,box-shadow .2s}
+.link button:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(255,255,255,.22)}
+.link button:active{transform:scale(.96)}
+.link .how{margin:10px 2px 0;font-size:13px;color:rgba(255,255,255,.66)}
+.tv{padding:9px;border-radius:24px;animation:floaty 7s ease-in-out infinite}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.tv img{display:block;width:100%;height:auto;border-radius:16px}
+/* entrance: each piece rises in, one after another */
+.in{opacity:0;transform:translateY(22px);animation:rise .8s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+.in:nth-of-type(1){animation-delay:.05s}.i2{animation-delay:.18s}.i3{animation-delay:.3s}.i4{animation-delay:.42s}
+.tv.in{animation:rise .9s .35s cubic-bezier(.2,.8,.2,1) forwards,floaty 7s 1.3s ease-in-out infinite}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px}
+.row3 figure{margin:0;padding:8px;border-radius:18px;transition:transform .45s cubic-bezier(.2,.8,.2,1),box-shadow .45s}
+.row3 figure:hover{transform:translateY(-6px) scale(1.015);box-shadow:inset 0 1px 0 rgba(255,255,255,.24),0 36px 90px rgba(0,0,0,.5)}
+.row3 img{display:block;width:100%;height:auto;border-radius:11px}
+.row3 figcaption{padding:10px 6px 4px;font-size:14.5px;font-weight:500;color:rgba(255,255,255,.85)}
+/* on scroll: the showcase and the pills rise in when they come into view */
+.rv{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .8s cubic-bezier(.2,.8,.2,1)}
+.rv.on{opacity:1;transform:none}
+.rv:nth-child(2){transition-delay:.1s}.rv:nth-child(3){transition-delay:.2s}
+.tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+.tags span{padding:8px 14px;border-radius:999px;font-size:14px;font-weight:500;transition:transform .25s,background .25s}
+.tags span:hover{transform:translateY(-2px);background:rgba(255,255,255,.16)}
+.foot{margin-top:40px;font-size:13px;color:rgba(255,255,255,.6);line-height:1.6}
+.foot a{color:rgba(255,255,255,.85)}
+.toast{position:fixed;left:50%;bottom:28px;z-index:9;transform:translate(-50%,16px);opacity:0;padding:11px 18px;border-radius:999px;background:#fff;color:#1a1340;font-weight:600;font-size:14px;transition:opacity .2s,transform .2s}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){.sky i,.tv,.tv.in,.link:after{animation:none}.in{animation-duration:.01s}.rv{transition:none;opacity:1;transform:none}}
+@media (max-width:1000px){.hero{grid-template-columns:minmax(0,1fr);gap:28px;padding-top:14px}.hero p{max-width:560px}}
+@media (max-width:900px){.row3{grid-template-columns:minmax(0,1fr);max-width:640px;margin-left:auto;margin-right:auto}}
+@media (max-width:560px){.link .row{flex-direction:column}.link button{padding:13px}}
+</style>
+</head>
+<body>
+<div class="sky"><i></i><i></i><i></i><i></i></div>
+<div class="page">
+  <nav class="in">
+    <a class="brand d" href="#"><img src="app/icon.png" alt="">StremioBrew</a>
+    <a class="src glass" href="https://github.com/simussu9-wq/stremiobrew">Source</a>
+  </nav>
+
+  <div class="hero">
+    <div>
+      <span class="kick glass in i2">Unofficial · free · open source</span>
+      <h1 class="d in i2">Stremio, on your <b>older LG TV.</b></h1>
+      <p class="in i3">A client for rooted webOS 3+ TVs. Sign in with your Stremio account, use your own addons, and watch.</p>
+      <div class="link glass in i4">
+        <small>Homebrew Channel link</small>
+        <div class="row"><code id="url" data-url="https://simussu9-wq.github.io/stremiobrew/apps.json"><span>https://simussu9-wq.github.io/</span><wbr><span>stremiobrew/apps.json</span></code><button id="copy">Copy</button></div>
+        <div class="how">Homebrew Channel → Settings → Add repository → enter the link → install StremioBrew. On the TV you can paste it with the LG ThinQ app's keyboard.</div>
+      </div>
+    </div>
+    <div class="tv glass in"><img src="site/shots/home.jpg" width="1600" height="900" alt="StremioBrew's Home screen on an LG TV"></div>
+  </div>
+
+  <div class="row3">
+    <figure class="glass rv"><img src="site/shots/title.jpg" width="1600" height="900" loading="lazy" alt="A series page with seasons and episodes"><figcaption>Seasons and episodes, with stills</figcaption></figure>
+    <figure class="glass rv"><img src="site/shots/search.jpg" width="1600" height="900" loading="lazy" alt="Search with the on-screen keyboard and results"><figcaption>Search on screen, or type from your phone</figcaption></figure>
+    <figure class="glass rv"><img src="site/shots/settings.jpg" width="1600" height="900" loading="lazy" alt="Settings with the accent colour preview"><figcaption>Every title brings its own colour</figcaption></figure>
+  </div>
+
+  <div class="tags rv">
+    <span class="glass">Debrid and P2P</span><span class="glass">Subtitles with auto-sync</span><span class="glass">Skip intro and credits</span><span class="glass">Next episode</span><span class="glass">11 languages</span><span class="glass">Magic Remote</span><span class="glass">Free and open source</span>
+  </div>
+
+  <p class="foot rv">Needs a rooted LG TV with the <a href="https://github.com/webosbrew/webos-homebrew-channel">Homebrew Channel</a> (webOS 3.0+, 32-bit ARM). Tested on webOS 4.4. The app ships empty and plays only what your addons return; nothing is sent to the developer.<br>
+  GNU GPL v3 or later · <a href="https://github.com/simussu9-wq/stremiobrew/blob/main/docs/compatibility.md">Compatibility</a> · Stremio™ is a trademark of Smart Code UG; this project is unofficial and not affiliated with Stremio or LG.</p>
+</div>
+<div class="toast" id="toast">Copied</div>
+<script>
+(function(){
+  var u=document.getElementById('url').getAttribute('data-url'),t=document.getElementById('toast'),h;
+  function done(){t.className='toast on';clearTimeout(h);h=setTimeout(function(){t.className='toast';},1500);}
+  function old(){var r=document.createRange();r.selectNodeContents(document.getElementById('url'));var s=getSelection();s.removeAllRanges();s.addRange(r);try{document.execCommand('copy');done();}catch(e){}}
+  document.getElementById('copy').onclick=function(){if(navigator.clipboard&&isSecureContext)navigator.clipboard.writeText(u).then(done,old);else old();};
+  var els=document.querySelectorAll('.rv');
+  if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target);}});},{rootMargin:'0px 0px -8% 0px'});els.forEach(function(e){io.observe(e);});}
+  else els.forEach(function(e){e.classList.add('on');});
+})();
+</script>
+</body>
+</html>

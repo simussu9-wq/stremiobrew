@@ -1,0 +1,13 @@
+{
+  "id": "tv.stremiobrew.app",
+  "version": "2.0.0",
+  "vendor": "StremioBrew",
+  "type": "web",
+  "main": "index.html",
+  "title": "StremioBrew",
+  "icon": "icon.png",
+  "largeIcon": "icon.png",
+  "bgColor": "#0c0b11",
+  "iconColor": "#1a1430",
+  "resolution": "1920x1080"
+}

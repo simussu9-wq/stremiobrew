@@ -1,0 +1,9 @@
+service/subcache/
+service/*.log
+dist/
+.build-ffmpeg/
+.build-ffmpeg-native/
+service/p2p/
+service/cache/
+.build-nuvio/
+service/tmdb.key

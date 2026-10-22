@@ -1,0 +1,330 @@
+/* StremioBrew player (app/player.js). Glass + accent (the app's --acc / --accRGB, see Settings >
+   Accent). Rules from this TV: opacity/transform-only motion, no blur, no blurred shadows,
+   animations run only while their element is visible. */
+#plr{position:fixed;top:0;left:0;right:0;bottom:0;z-index:90;display:none;opacity:0;overflow:hidden;color:#fff;font-family:'Inter',sans-serif;
+  -webkit-transition:opacity .22s ease;transition:opacity .22s ease}
+#plr.in{opacity:1}
+/* leaving: the cover comes back quickly over the paused frame (its title and loading line hidden), and the
+   whole player fades a little slower onto the app once the app has drawn itself */
+#plr.exit{-webkit-transition:opacity .35s ease;transition:opacity .35s ease}
+#plr.exit #pArt{-webkit-transition:opacity .2s ease;transition:opacity .2s ease}
+#plr.exit #pArt .c{visibility:hidden}
+#plr.exit #pArt .lg,#plr.exit #pArt .ln i{-webkit-animation:none;animation:none}
+#pVid{position:absolute;top:0;left:0;width:100%;height:100%;background:#000}
+#plr .isl{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02)),rgba(18,16,28,.8);border:1px solid rgba(255,255,255,.12);border-radius:28px}
+
+/* ---- the title art while the stream starts ---- */
+#pArt{position:absolute;top:0;left:0;right:0;bottom:0;z-index:50;background:#0c0b11;-webkit-transition:opacity .45s ease;transition:opacity .45s ease}
+#plr.live #pArt{opacity:0}
+#pArt .bg{position:absolute;top:0;left:0;right:0;bottom:0;background-size:cover;background-position:center top;opacity:.42;image-rendering:-webkit-optimize-contrast;will-change:transform} /* own layers: the copy is uploaded as a texture and scaled by the GPU instead of being decoded into the cover's ~30 tiles (a 327 ms commit block) */
+#pArt .cv{display:none;position:absolute;top:0;left:0;width:100%;height:100%;opacity:.5;image-rendering:-webkit-optimize-contrast;will-change:transform} /* bilinear: the default high-quality upscale of this 1280x720 copy was 423 ms of software decode on the TV */
+#pArt .sh{position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(ellipse at center,rgba(12,11,17,.28) 0%,rgba(12,11,17,.92) 78%)}
+#pArt .c{position:absolute;left:0;right:0;top:50%;-webkit-transform:translateY(-50%);transform:translateY(-50%);text-align:center}
+#pArt .lg img,#pArt .lg canvas{display:block;margin:0 auto;max-width:760px;max-height:260px}
+#pArt .lg .nm{max-width:80%;margin:0 auto;font-size:78px;font-weight:800;letter-spacing:-1.5px;line-height:1.05}
+#plr:not(.live) #pArt .lg{-webkit-animation:plBreathe 3.6s ease-in-out infinite;animation:plBreathe 3.6s ease-in-out infinite}
+@-webkit-keyframes plBreathe{0%,100%{opacity:.9}50%{opacity:1}}@keyframes plBreathe{0%,100%{opacity:.9}50%{opacity:1}}
+#pArt .tag{display:-webkit-flex;display:flex;-webkit-justify-content:center;justify-content:center;-webkit-align-items:center;align-items:center;margin-top:28px;font-size:24px;font-weight:700;letter-spacing:8px;text-transform:uppercase}
+#pArt .tag:empty{display:none}
+#pArt .tag i{display:block;width:84px;height:2px;background:linear-gradient(90deg,rgba(140,92,255,0),#b794ff);background:linear-gradient(90deg,rgba(var(--accRGB,140,92,255),0),var(--acc2,#b794ff))}
+#pArt .tag i:last-child{background:linear-gradient(90deg,#b794ff,rgba(140,92,255,0));background:linear-gradient(90deg,var(--acc2,#b794ff),rgba(var(--accRGB,140,92,255),0))}
+#pArt .tag span{padding:0 14px 0 22px}
+#pArt .ln{position:relative;width:260px;height:3px;margin:46px auto 0;border-radius:2px;overflow:hidden}
+#pArt .ln i{position:absolute;top:0;left:0;width:45%;height:100%;border-radius:2px;background:linear-gradient(90deg,rgba(140,92,255,0),#b794ff,rgba(140,92,255,0));background:linear-gradient(90deg,rgba(var(--accRGB,140,92,255),0),var(--acc2,#b794ff),rgba(var(--accRGB,140,92,255),0))}
+#plr:not(.live) #pArt .ln i{-webkit-animation:plLine 1.5s ease-in-out infinite;animation:plLine 1.5s ease-in-out infinite}
+@-webkit-keyframes plLine{from{-webkit-transform:translateX(-100%)}to{-webkit-transform:translateX(225%)}}@keyframes plLine{from{transform:translateX(-100%)}to{transform:translateX(225%)}}
+#pArt .stx{min-height:34px;margin-top:20px;font-size:25px;font-weight:600;color:rgba(255,255,255,.66)}
+#pArt.err .ln{display:none}
+#pArt.err .stx{color:#ffb9b9}
+
+/* ---- subtitles ---- */
+#pSub{position:absolute;left:6%;right:6%;bottom:8%;z-index:10;text-align:center;line-height:1.35;pointer-events:none;-webkit-transition:bottom .3s ease;transition:bottom .3s ease}
+#plr.osd #pSub{bottom:420px}
+#plr.skm #pSub{bottom:200px}
+#pSub span{display:inline-block}
+#pSubP{position:absolute;top:0;left:0;width:100%;height:100%;z-index:10;pointer-events:none;overflow:hidden}
+#pSubP div{position:absolute;line-height:1.3;white-space:pre-line;text-align:center}
+
+/* ---- shades: the bottom for the controls, the left when paused ---- */
+/* shades: tiny canvases (8x256, 8x128, 384x216) the GPU stretches over the screen - fading them is
+   an opacity change of a texture, nothing is rasterized (as full-screen CSS gradients the paused
+   vignette lagged, tore and ate memory on this TV) */
+#pDim,#pDimT,#pVig{position:absolute;left:0;width:100%;z-index:5;opacity:0;pointer-events:none;will-change:opacity;-webkit-transition:opacity .3s ease;transition:opacity .3s ease}
+#pDim{bottom:0;height:56%}
+#pDimT{top:0;height:240px}
+#pVig{top:0;height:100%;-webkit-transition:opacity .9s ease;transition:opacity .9s ease}
+#plr.osd #pDim,#plr.osd #pDimT,#plr.paused #pDim,#plr.paused #pDimT,#plr.paused #pVig{opacity:1}
+#plr.skm #pDim{opacity:.6}
+
+/* ---- buffering, seek amount, clock ---- */
+#pBuf{position:absolute;left:0;right:0;top:50%;margin-top:-62px;z-index:15;text-align:center;opacity:0;pointer-events:none;-webkit-transition:opacity .2s;transition:opacity .2s}
+#plr.buf #pBuf{opacity:1}
+#pBuf .ring{width:80px;height:80px;margin:0 auto;border-radius:50%;border:5px solid rgba(255,255,255,.14);border-top-color:#b794ff;border-top-color:var(--acc2,#b794ff);box-sizing:border-box}
+#plr.buf #pBuf .ring{-webkit-animation:plSpin .9s linear infinite;animation:plSpin .9s linear infinite}
+@-webkit-keyframes plSpin{to{-webkit-transform:rotate(360deg)}}@keyframes plSpin{to{transform:rotate(360deg)}}
+#pBuf .stx{margin-top:22px;font-size:24px;font-weight:600;color:rgba(255,255,255,.8)}
+#pSeek{position:absolute;left:0;right:0;top:38%;z-index:15;text-align:center;font-size:66px;font-weight:800;letter-spacing:1px;opacity:0;pointer-events:none;-webkit-transition:opacity .18s;transition:opacity .18s}
+#plr.sk #pSeek{opacity:1}
+/* top-left, with the controls: a torrent's peers and speed */
+#pP2p{position:absolute;top:52px;left:72px;z-index:20;display:none;-webkit-align-items:center;align-items:center;height:46px;padding:0 20px 0 16px;border-radius:23px;
+  background:rgba(10,12,22,.6);border:2px solid rgba(255,255,255,.18);font-size:22px;font-weight:600;opacity:0;-webkit-transition:opacity .3s ease;transition:opacity .3s ease}
+#plr.p2p #pP2p{display:-webkit-flex;display:flex}
+#plr.p2p.osd #pP2p{opacity:1}
+#pP2p i{display:block;width:10px;height:10px;margin-right:12px;border-radius:50%;background:#4ade80} /* steady: an endless pulse kept the page committing a frame ~28x a second during playback */
+#plr:not(.osd) #pP2p i{-webkit-animation:none;animation:none}
+/* top-right: the clock */
+#pTopR{position:absolute;top:46px;right:64px;z-index:20;display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;
+  opacity:0;-webkit-transform:translateY(-12px);transform:translateY(-12px);-webkit-transition:opacity .3s ease,-webkit-transform .3s ease;transition:opacity .3s ease,transform .3s ease}
+#plr.osd #pTopR{opacity:1;-webkit-transform:none;transform:none}
+#pClock{display:-webkit-flex;display:flex;-webkit-flex-direction:column;flex-direction:column;-webkit-align-items:flex-end;align-items:flex-end;text-shadow:0 1px 0 rgba(0,0,0,.5)}
+#pClock .now{font-size:40px;font-weight:300;letter-spacing:1px;font-variant-numeric:tabular-nums;will-change:transform}
+@-webkit-keyframes pckA{from{opacity:.25;-webkit-transform:translateX(12px)}}@keyframes pckA{from{opacity:.25;transform:translateX(12px)}}
+@-webkit-keyframes pckB{from{opacity:.25;-webkit-transform:translateX(12px)}}@keyframes pckB{from{opacity:.25;transform:translateX(12px)}}
+#pClock .now.ck-a{-webkit-animation:pckA .4s cubic-bezier(.2,.9,.25,1.15);animation:pckA .4s cubic-bezier(.2,.9,.25,1.15)}
+#pClock .now.ck-b{-webkit-animation:pckB .4s cubic-bezier(.2,.9,.25,1.15);animation:pckB .4s cubic-bezier(.2,.9,.25,1.15)}
+#pClock .end{margin-top:0;font-size:19px;font-weight:600;letter-spacing:1.6px;text-transform:uppercase;color:rgba(255,255,255,.6)}
+#pClock .end:empty{display:none}
+
+/* ---- bottom: title art, progress, controls. They come in one after the other ---- */
+#pBot{position:absolute;left:0;right:0;bottom:0;z-index:20;padding:0 72px 54px}
+#pBot .ttl,#pBot .bar,#pBot .btns{opacity:0;-webkit-transition:opacity .2s ease,-webkit-transform .2s ease;transition:opacity .2s ease,transform .2s ease}
+#pBot .ttl{-webkit-transform:translateX(-30px);transform:translateX(-30px)}
+#pBot .bar{-webkit-transform:translateY(18px);transform:translateY(18px)}
+#pBot .btns{-webkit-transform:translateY(24px);transform:translateY(24px)}
+#plr.osd #pBot .ttl,#plr.osd #pBot .bar,#plr.osd #pBot .btns,#plr.skm #pBot .bar{opacity:1;-webkit-transform:none;transform:none}
+#plr.osd #pBot .ttl{-webkit-transition:opacity .42s cubic-bezier(.2,.8,.2,1),-webkit-transform .42s cubic-bezier(.2,.8,.2,1);transition:opacity .42s cubic-bezier(.2,.8,.2,1),transform .42s cubic-bezier(.2,.8,.2,1)}
+#plr.osd #pBot .bar{-webkit-transition:opacity .36s .06s ease,-webkit-transform .36s .06s cubic-bezier(.2,.8,.2,1);transition:opacity .36s .06s ease,transform .36s .06s cubic-bezier(.2,.8,.2,1)}
+#plr.osd #pBot .btns{-webkit-transition:opacity .36s .12s ease,-webkit-transform .36s .12s cubic-bezier(.2,.8,.2,1);transition:opacity .36s .12s ease,transform .36s .12s cubic-bezier(.2,.8,.2,1)}
+#pBot .ttl .pz{height:0;overflow:visible;opacity:0;font-size:22px;font-weight:700;letter-spacing:6px;text-transform:uppercase;color:rgba(255,255,255,.55);-webkit-transform:translateY(-38px);transform:translateY(-38px);-webkit-transition:opacity .3s;transition:opacity .3s}
+#plr.paused #pBot .ttl .pz{opacity:1}
+#pBot .ttl .lg img,#pBot .ttl .lg canvas{display:block;max-width:560px;max-height:170px}
+#pBot .ttl .lg .nm{max-width:1100px;font-size:60px;font-weight:800;letter-spacing:-1px;line-height:1.05}
+#pBot .ttl .se{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;margin-top:18px;font-size:30px;line-height:1.2;text-shadow:0 1px 0 rgba(0,0,0,.6)}
+#pBot .ttl .se:empty{display:none}
+#pBot .ttl .se b{font-weight:800;letter-spacing:.5px}
+#pBot .ttl .se i{display:block;width:7px;height:7px;margin:0 16px;border-radius:50%;background:#b794ff;background:var(--acc2,#b794ff)}
+#pBot .ttl .se span{max-width:1000px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:700;color:#fff}
+/* stream info under the title: grouped chips, then year · genre · via addon */
+#pBot .ttl .inf{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-flex-wrap:wrap;flex-wrap:wrap;margin-top:18px}
+#pBot .ttl .inf:empty,#pBot .ttl .mt:empty{display:none}
+#pBot .ttl .inf .ch{display:-webkit-inline-flex;display:inline-flex;-webkit-align-items:center;align-items:center;height:46px;margin-right:12px;padding:0 20px;box-sizing:border-box;border-radius:23px;
+  background:rgba(10,12,22,.55);box-shadow:inset 0 0 0 2px rgba(255,255,255,.22);font-size:24px;font-weight:600;white-space:nowrap}
+#pBot .ttl .inf .ch.rs{font-weight:800;letter-spacing:.5px}
+#pBot .ttl .inf .ch svg{width:26px;height:26px;margin-right:10px;fill:currentColor;opacity:.9}
+@-webkit-keyframes infA{from{opacity:0;-webkit-transform:translateY(8px)}}@keyframes infA{from{opacity:0;transform:translateY(8px)}}
+@-webkit-keyframes infB{from{opacity:0;-webkit-transform:translateY(8px)}}@keyframes infB{from{opacity:0;transform:translateY(8px)}}
+#pBot .ttl .inf.ia>*{-webkit-animation:infA .42s cubic-bezier(.2,.8,.2,1) both;animation:infA .42s cubic-bezier(.2,.8,.2,1) both}
+#pBot .ttl .inf.ib>*{-webkit-animation:infB .42s cubic-bezier(.2,.8,.2,1) both;animation:infB .42s cubic-bezier(.2,.8,.2,1) both}
+#pBot .ttl .inf>:nth-child(2){-webkit-animation-delay:.05s;animation-delay:.05s}#pBot .ttl .inf>:nth-child(3){-webkit-animation-delay:.1s;animation-delay:.1s}
+#pBot .ttl .inf>:nth-child(4){-webkit-animation-delay:.15s;animation-delay:.15s}#pBot .ttl .inf>:nth-child(5){-webkit-animation-delay:.2s;animation-delay:.2s}
+#pBot .ttl .inf .sep{display:block;width:2px;height:34px;margin:0 16px 0 4px;background:rgba(255,255,255,.45)}
+#pBot .ttl .mt{margin-top:14px;font-size:25px;font-weight:500;color:rgba(255,255,255,.75);text-shadow:0 1px 0 rgba(0,0,0,.5)}
+#pBot .ttl .mt b{margin:0 14px;font-weight:400;color:rgba(255,255,255,.5)}
+#pBot .ttl .se .tg{margin:0;font-size:22px;font-weight:700;letter-spacing:6px;text-transform:uppercase;color:#b794ff;color:var(--acc2,#b794ff)}
+#pBot .bar{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;margin-top:32px}
+#pBot .cur,#pBot .rem{width:132px;font-size:25px;font-weight:600;font-variant-numeric:tabular-nums}
+#pBot .rem{text-align:right;color:rgba(255,255,255,.72)}
+#pBot .trk{position:relative;-webkit-flex:1;flex:1;height:6px;margin:0 20px;border-radius:3px;background:rgba(255,255,255,.2)} /* the focused bar thickens in one frame (a height transition re-painted it every frame) */
+#pBot .trk .bfd,#pBot .trk .fil{position:absolute;left:0;top:0;bottom:0;width:100%;border-radius:3px;will-change:transform;-webkit-transform-origin:0 50%;transform-origin:0 50%;-webkit-transform:scaleX(0);transform:scaleX(0)} /* progress moves by transform: no layout or repaint 4x a second */
+#pBot .trk .bfd{background:rgba(255,255,255,.26)}
+#pBot .trk .mks{position:absolute;top:0;left:0;right:0;bottom:0}
+#pBot .trk .mks i{position:absolute;top:0;bottom:0;border-radius:3px;background:rgba(255,255,255,.5)}
+#pBot .trk .fil{background:linear-gradient(90deg,#8c5cff,#b794ff);background:linear-gradient(90deg,var(--acc,#8c5cff),var(--acc2,#b794ff))}
+#pBot .trk .knb{position:absolute;top:50%;left:0;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#fff;opacity:0;will-change:transform;-webkit-transition:opacity .15s;transition:opacity .15s}
+#pBot .trk.f,#pBot .trk.sk{height:10px}
+/* the pointer over the bar: the time under it, in a small bubble that follows it (transform only) */
+#pBot .trk .hv{position:absolute;left:0;bottom:26px;opacity:0;pointer-events:none;will-change:transform;-webkit-transition:opacity .15s ease;transition:opacity .15s ease}
+#pBot .trk .hv span{display:block;-webkit-transform:translateX(-50%);transform:translateX(-50%);padding:7px 14px;border-radius:12px;background:rgba(14,12,22,.86);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);font-size:24px;font-weight:700;white-space:nowrap}
+#pBot .trk .hv.on{opacity:1}
+/* the pointer: what shows takes it, faded layers let it through (the art once playing, the focus pill) */
+#plr.live #pArt,#pFoc{pointer-events:none}
+#plr.tr #pTray,#pPrompt.on{pointer-events:auto}
+#pBot .trk.f .knb,#pBot .trk.sk .knb{opacity:1;width:30px;height:30px;margin:-15px 0 0 -15px;box-shadow:0 0 0 7px rgba(140,92,255,.5);box-shadow:0 0 0 7px rgba(var(--accRGB,140,92,255),.5)}
+#pBot .btns{display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;-webkit-align-items:center;align-items:center;margin-top:30px}
+#pBot .btns .l,#pBot .btns .r{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center}
+#plr .pb{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;-webkit-justify-content:center;justify-content:center;color:#fff;
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.1);-webkit-transition:background .15s,color .15s,border-color .15s;transition:background .15s,color .15s,border-color .15s}
+#plr .pb svg{width:38px;height:38px;fill:currentColor;-webkit-flex:none;flex:none}
+#plr .pb.rb{width:76px;height:76px;margin-right:20px;border-radius:50%}
+#plr .pb.big{width:92px;height:92px}
+#plr .pb.big svg{width:48px;height:48px}
+/* the right side: icons only; the focused one opens up with its name */
+#plr .pb.ic{width:76px;height:76px;margin-left:18px;border-radius:50%}
+#plr .pb.ic svg{width:34px;height:34px}
+/* no paint transitions on the buttons: each one re-rastered + re-uploaded the whole button row every frame
+   for 0.2 s of every move (the dropped frames while playing); the sliding pill (#pFoc) is the motion */
+#plr .pb.f{color:#fff;color:var(--accFg,#fff)}
+#plr .pb.nx{margin-left:8px}
+
+/* ---- skip intro / recap, and the credits card ---- */
+#pPrompt{position:absolute;right:72px;bottom:72px;z-index:30;display:-webkit-flex;display:flex;opacity:0;pointer-events:none;
+  -webkit-transform:translateY(20px);transform:translateY(20px);-webkit-transition:opacity .3s ease,-webkit-transform .3s cubic-bezier(.2,.8,.2,1),bottom .3s ease;transition:opacity .3s ease,transform .3s cubic-bezier(.2,.8,.2,1),bottom .3s ease}
+#pPrompt.on{opacity:1;-webkit-transform:none;transform:none}
+#plr.osd #pPrompt{bottom:440px}
+#pPrompt .pp{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;height:72px;margin-left:16px;padding:0 32px;border-radius:36px;
+  background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02)),rgba(18,16,28,.82);border:1px solid rgba(255,255,255,.14);font-size:26px;font-weight:700;
+  -webkit-transition:background .15s,border-color .15s;transition:background .15s,border-color .15s}
+#pPrompt .pp svg{width:30px;height:30px;margin-right:12px;fill:currentColor}
+#pPrompt .pp.f{background-color:#8c5cff;background-color:var(--acc,#8c5cff);background-image:linear-gradient(135deg,rgba(255,255,255,0) 35%,rgba(255,255,255,.22));border-color:transparent;color:#fff;color:var(--accFg,#fff)}
+
+/* ---- trays: one horizontal panel above the buttons (Episodes, Sources, Audio; Subtitles in columns) ---- */
+/* sized by what it shows, never more than 60% of the width and 50% of the height; it sits over the
+   buttons' side and grows out of the one that opened it */
+#pTray{position:absolute;right:72px;bottom:178px;z-index:40;max-width:60%;padding:22px 0 20px;box-sizing:border-box;border-radius:30px;
+  background:rgba(16,14,24,.9);border:1px solid rgba(255,255,255,.1);
+  opacity:0;-webkit-transform:scale(.12);transform:scale(.12);pointer-events:none;will-change:transform,opacity;
+  -webkit-transition:opacity .2s ease .04s,-webkit-transform .26s cubic-bezier(.4,0,1,1);transition:opacity .2s ease .04s,transform .26s cubic-bezier(.4,0,1,1)}
+#plr.tr #pTray{opacity:1;-webkit-transform:none;transform:none;
+  -webkit-transition:opacity .18s ease,-webkit-transform .38s cubic-bezier(.2,.9,.25,1);transition:opacity .18s ease,transform .38s cubic-bezier(.2,.9,.25,1)}
+#plr.tr #pBot .ttl,#plr.tr #pBot .bar{opacity:0;-webkit-transform:translateY(10px);transform:translateY(10px)}
+#plr.tr #pSub{bottom:62%}
+#pTray .hd{padding:0 30px 18px;white-space:nowrap}
+#pTray .hd:empty{display:none}
+#pTray .hd .tt{font-size:30px;font-weight:800;overflow:hidden;text-overflow:ellipsis}
+#pTray .hd .tt.sm{margin-bottom:14px;font-size:24px;color:rgba(255,255,255,.7)}
+#pTray .tabs{overflow:hidden}
+#pTray .tabs .tw{display:inline-block;-webkit-transition:-webkit-transform .25s ease;transition:transform .25s ease}
+#pTray .tab{display:inline-block;margin-right:10px;padding:10px 24px;border-radius:24px;font-size:24px;font-weight:700;color:rgba(255,255,255,.55);
+  -webkit-transition:background .18s,color .18s,-webkit-transform .22s cubic-bezier(.2,.8,.2,1);transition:background .18s,color .18s,transform .22s cubic-bezier(.2,.8,.2,1)}
+#pTray .tab.on{color:#fff;background:rgba(255,255,255,.1)}
+#pTray .tab.f{background-color:#8c5cff;background-color:var(--acc,#8c5cff);background-image:linear-gradient(135deg,rgba(255,255,255,0) 35%,rgba(255,255,255,.22));color:#fff;color:var(--accFg,#fff);}
+#pTray .lst{position:relative;overflow:hidden;padding:8px 0;max-height:430px}
+#pTray .in{padding:0 30px;white-space:nowrap;-webkit-transition:-webkit-transform .3s cubic-bezier(.2,.8,.2,1);transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+#pTray .cd{position:relative;display:inline-block;vertical-align:top;margin-right:18px;white-space:normal;border-radius:20px;box-sizing:border-box;
+  background:rgba(255,255,255,.07);
+  -webkit-transition:background .18s,box-shadow .18s,-webkit-transform .24s cubic-bezier(.2,.8,.2,1);transition:background .18s,box-shadow .18s,transform .24s cubic-bezier(.2,.8,.2,1)}
+#pTray .cd.f{background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 3px #b794ff;box-shadow:inset 0 0 0 3px var(--acc2,#b794ff);}
+#pTray .cd .a{font-size:24px;font-weight:700;line-height:1.25}
+#pTray .cd .b{margin-top:4px;font-size:19px;font-weight:600;color:rgba(255,255,255,.55)}
+#pTray .cd .c{margin-top:8px;font-size:18px;line-height:1.38;color:rgba(255,255,255,.62);overflow:hidden}
+#pTray .cd .now{position:absolute;top:12px;left:12px;padding:4px 12px;border-radius:10px;background:#8c5cff;background:var(--acc,#8c5cff);font-size:16px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+/* episodes */
+#pTray .cd.ep{width:336px;padding:0 0 16px;overflow:hidden}
+#pTray .cd.ep .th{position:relative;height:189px;background:#15121f center/cover no-repeat}
+#pTray .cd.ep .th img{display:block;width:100%;height:100%;object-fit:cover}
+#pTray .cd.ep .a,#pTray .cd.ep .b,#pTray .cd.ep .c{padding:0 18px}
+#pTray .cd.ep .a{margin-top:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pTray .cd.ep .c{max-height:50px}
+#pTray .cd.ep.f{box-shadow:0 0 0 4px #fff}
+/* sources */
+#pTray .cd.sr{width:400px;height:196px;padding:20px 22px;overflow:hidden}
+#pTray .cd.sr .a{max-height:62px;overflow:hidden}
+#pTray .cd.sr .c{max-height:100px}
+#pTray .cd.sr.on{box-shadow:inset 0 0 0 2px rgba(140,92,255,.7);box-shadow:inset 0 0 0 2px rgba(var(--accRGB,140,92,255),.7)}
+#pTray .cd.sr.on.f{box-shadow:0 0 0 4px #fff}
+#pTray .cd.sr .now{top:auto;bottom:14px;left:auto;right:16px}
+/* chips: audio, subtitles */
+#pTray .cd.ch{display:-webkit-inline-flex;display:inline-flex;-webkit-align-items:center;align-items:center;padding:18px 26px 18px 18px;min-width:220px}
+#pTray .cd.ch .ck{position:relative;-webkit-flex:none;flex:none;width:24px;height:24px;margin-right:12px}
+#pTray .cd.ch.on .ck:after{content:'';position:absolute;left:7px;top:1px;width:8px;height:15px;border:solid #b794ff;border:solid var(--acc2,#b794ff);border-width:0 3px 3px 0;-webkit-transform:rotate(45deg);transform:rotate(45deg)}
+#pTray .cd.ch .a{-webkit-flex:1;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pTray .cd.ch .b{margin:0 0 0 12px}
+#pTray .cd.ch .vl{margin-left:16px;font-size:22px;font-weight:700;color:#c9b8ff;color:var(--acc3,#c9b8ff);white-space:nowrap}
+#pTray .cd.ch .swc{display:block;width:22px;height:22px;margin-left:14px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(0,0,0,.3)}
+#pTray .nt{display:inline-block;vertical-align:top;padding:18px 10px;font-size:22px;color:rgba(255,255,255,.55);white-space:nowrap}
+#pTray .nt .spn{display:inline-block;width:22px;height:22px;margin:0 12px -4px 0;border-radius:50%;border:3px solid rgba(255,255,255,.2);border-top-color:#b794ff;border-top-color:var(--acc2,#b794ff);box-sizing:border-box;-webkit-animation:plSpin .9s linear infinite;animation:plSpin .9s linear infinite}
+/* subtitles: four columns side by side */
+#pTray.cols .in{display:-webkit-flex;display:flex;white-space:normal;padding:0 18px}
+#pTray .col{-webkit-flex:none;flex:none;width:248px;margin:0 5px;padding:6px 10px 4px;border-radius:22px;-webkit-transition:background .2s;transition:background .2s}
+#pTray .col.cur{background:rgba(255,255,255,.04)}
+#pTray .col .ch2{display:-webkit-flex;display:flex;-webkit-justify-content:space-between;justify-content:space-between;padding:6px 8px 14px;font-size:18px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;color:rgba(255,255,255,.5)}
+#pTray .col.cur .ch2{color:#b794ff;color:var(--acc2,#b794ff)}
+#pTray .col .ch2 span{letter-spacing:.5px;color:#fff}
+#pTray .col .cl{position:relative;height:290px;overflow:hidden}
+#pTray .col .cin{-webkit-transition:-webkit-transform .25s ease;transition:transform .25s ease}
+#pTray .col .cd.ch{display:-webkit-flex;display:flex;min-width:0;margin:0 6px 10px;padding:15px 18px 15px 14px}
+#pTray .col .cd.ch .a{font-size:22px}
+#pTray .col .nt{display:block;white-space:normal;padding:12px 14px}
+
+/* while the player is up the app rests (display:none frees its GPU tiles) */
+body.playing>*:not(#plr):not(#toast){display:none!important}
+#toast{z-index:120}
+/* focus motion on the skip / credits buttons (after their base rule) */
+#pPrompt .pp,#pPrompt .pp.f{-webkit-transition:background .18s,border-color .18s,box-shadow .22s;transition:background .18s,border-color .18s,box-shadow .22s}
+#pTray .col .cd.ch.tl{padding:15px 18px}
+#pTray .col .cd.ch.tl .a{font-size:21px}
+#pTray .col .cd.ch .vl{margin-left:10px;font-size:20px}
+#pTray .col .cd.ch .swc{margin-left:10px;width:18px;height:18px}
+/* focus = a ring that grows (paint only: no layer per button, no blurred text while it moves) */
+#pPrompt .pp.f,#pTray .tab.f{box-shadow:0 0 0 4px rgba(140,92,255,.38);box-shadow:0 0 0 4px rgba(var(--accRGB,140,92,255),.38)}
+#pTray .cd{-webkit-transition:background .18s,box-shadow .2s;transition:background .18s,box-shadow .2s}
+#pTray .cd.f{background:rgba(255,255,255,.12);box-shadow:0 0 0 4px #fff}
+/* arming: drawn (at an invisible 1%) so its tiles exist before it animates in */
+#plr.trp #pTray{opacity:.01;-webkit-transform:none;transform:none;-webkit-transition:none;transition:none}
+#plr.tr #pTray{opacity:1}
+/* the Netflix-style countdown inside "Next episode" (a scaleX animation: composited, nothing repaints) */
+#pPrompt .pp{position:relative;overflow:hidden}
+#pPrompt .pp .cd{position:absolute;left:0;top:0;bottom:0;width:100%;background:rgba(255,255,255,.28);-webkit-transform-origin:0 50%;transform-origin:0 50%;-webkit-transform:scaleX(0);transform:scaleX(0)}
+#pPrompt.auto .pp .cd{-webkit-animation:plCount 10s linear forwards;animation:plCount 10s linear forwards}
+#pPrompt .pp svg,#pPrompt .pp span{position:relative}
+/* the next-up card */
+#pPrompt .nxc{width:540px;padding:16px 16px 18px;box-sizing:border-box;border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02)),rgba(14,12,22,.88);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 20px 50px rgba(0,0,0,.5)}
+#pPrompt .nxc .art{position:relative;height:286px;border-radius:18px;overflow:hidden;background:#1b1927 center/cover no-repeat;image-rendering:-webkit-optimize-contrast}
+#pPrompt .nxc .cd{position:absolute;left:0;right:0;bottom:0;height:6px;background:#b794ff;background:var(--acc2,#b794ff);-webkit-transform-origin:0 50%;transform-origin:0 50%;-webkit-transform:scaleX(0);transform:scaleX(0)}
+html[dir=rtl] #pPrompt .nxc .cd{-webkit-transform-origin:100% 50%;transform-origin:100% 50%}
+#pPrompt.auto .nxc .cd{-webkit-animation:plCount 10s linear forwards;animation:plCount 10s linear forwards}
+#pPrompt .nxc .up{margin:18px 6px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:18px;font-weight:800;letter-spacing:2.4px;text-transform:uppercase;color:#b794ff;color:var(--acc2,#b794ff)}
+#pPrompt .nxc .up .sec{letter-spacing:.4px;text-transform:none;color:rgba(255,255,255,.7);font-weight:600}
+#pPrompt .nxc .tt{margin:6px 6px 0;font-size:30px;font-weight:800;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pPrompt .nxc .tt i{font-style:normal;margin:0 12px;color:rgba(255,255,255,.4)}#pPrompt .nxc .tt .se{unicode-bidi:isolate;direction:ltr} /* S2 · E5 reads the same in every language */
+#pPrompt .nxc .ov{margin:6px 6px 0;font-size:20px;line-height:1.38;color:rgba(255,255,255,.66);max-height:56px;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+#pPrompt .nxc .hk{display:-webkit-flex;display:flex;margin:18px 6px 0}
+#pPrompt .nxc .hk span{display:-webkit-flex;display:flex;-webkit-align-items:center;align-items:center;margin-right:28px;font-size:20px;font-weight:700;color:rgba(255,255,255,.82)}
+#pPrompt .nxc .hk b{display:inline-block;min-width:46px;height:32px;line-height:32px;padding:0 10px;margin-right:10px;box-sizing:border-box;border-radius:9px;text-align:center;font-size:15px;letter-spacing:1px;background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}
+#pPrompt .nxc .hk .ok b{background:#8c5cff;background:var(--acc,#8c5cff);color:#fff;color:var(--accFg,#fff);box-shadow:none}
+@-webkit-keyframes plCount{to{-webkit-transform:scaleX(1)}}@keyframes plCount{to{transform:scaleX(1)}}
+/* the controls keep their layers between shows: no re-layerize + re-raster every time the OSD comes up */
+#pBot .ttl,#pBot .bar,#pBot .btns,#pTopR{will-change:opacity,transform}
+/* focus changes paint in one frame (each frame of a paint transition re-rasters tiles over the video) */
+#pTray .cd,#pTray .tab,#pPrompt .pp,#pPrompt .pp.f,#pTray .col,#plr .pb,#plr .pb.f{-webkit-transition:none;transition:none}
+/* the buttons never repaint on focus: one accent disc slides under the focused one (transform only)
+   and its name fades in above it */
+#pBot .btns{position:relative}
+#plr .pb{position:relative;z-index:1}
+#plr .pb.f{background:transparent;border-color:transparent}
+#pFoc{position:absolute;left:0;top:0;width:76px;height:76px;-webkit-transform-origin:0 0;transform-origin:0 0;opacity:0;will-change:transform,opacity;
+  -webkit-transition:-webkit-transform .32s cubic-bezier(.2,.8,.2,1),opacity .18s ease;transition:transform .32s cubic-bezier(.2,.8,.2,1),opacity .18s ease}
+#pFoc.on{opacity:1}
+#pFoc i{position:absolute;top:0;height:76px;background:#8c5cff;background:var(--acc,#8c5cff);will-change:transform;-webkit-transition:-webkit-transform .32s cubic-bezier(.2,.8,.2,1);transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+#pFoc .a,#pFoc .c{left:0;width:76px;border-radius:50%}
+#pFoc .m{left:38px;width:1px;-webkit-transform-origin:0 50%;transform-origin:0 50%}
+#plr .pb{will-change:transform;-webkit-transition:-webkit-transform .32s cubic-bezier(.2,.8,.2,1);transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+#pTip{position:absolute;left:0;top:0;z-index:2;font-size:24px;font-weight:700;white-space:nowrap;color:#fff;color:var(--accFg,#fff);opacity:0;pointer-events:none;will-change:transform,opacity;
+  -webkit-transition:-webkit-transform .32s cubic-bezier(.2,.8,.2,1),opacity .14s ease;transition:transform .32s cubic-bezier(.2,.8,.2,1),opacity .14s ease}
+#pTip.on{opacity:1}
+#pTip.on.a{-webkit-animation:tipA .3s ease .08s both;animation:tipA .3s ease .08s both}
+#pTip.on.b{-webkit-animation:tipB .3s ease .08s both;animation:tipB .3s ease .08s both}
+@-webkit-keyframes tipA{from{opacity:0}}@keyframes tipA{from{opacity:0}}
+@-webkit-keyframes tipB{from{opacity:0}}@keyframes tipB{from{opacity:0}}
+#pTray .in{position:relative}
+#pTray .in .ring{position:absolute;left:0;top:0;border-radius:20px;box-shadow:0 0 0 4px #fff;opacity:0;pointer-events:none;z-index:2;will-change:transform;
+  -webkit-transition:-webkit-transform .2s cubic-bezier(.2,.8,.2,1),opacity .15s;transition:transform .2s cubic-bezier(.2,.8,.2,1),opacity .15s}
+#pTray .in .ring.on{opacity:1}
+#pTray.rowm .cd.f,#pTray.rowm .cd.ep.f,#pTray.rowm .cd.sr.on.f{background:rgba(255,255,255,.07);box-shadow:none}
+#pTray.rowm .cd.ch.f{background:rgba(255,255,255,.07)}
+/* a column still being filled: quiet placeholder rows (static: no shimmer animation) */
+#pTray .cd.skel{height:58px;background:rgba(255,255,255,.05)}
+#pTray .cd.skel i{display:block;width:60%;height:14px;border-radius:7px;background:rgba(255,255,255,.1)}
+/* tray focus, light and modern: a soft lit plate slides behind the focused card (with a thin accent
+   line under it) - no white outlines, nothing to be clipped at the edges */
+#pTray .cd.f,#pTray .cd.ep.f,#pTray .cd.sr.on.f,#pTray .col .cd.f,#pTray .cd.ch.f{box-shadow:none}
+#pTray .in .ring{z-index:0;box-shadow:none;background:rgba(255,255,255,.13);border-radius:20px}
+#pTray .in .ring:after{content:'';position:absolute;left:22%;right:22%;bottom:-9px;height:4px;border-radius:2px;background:#b794ff;background:var(--acc2,#b794ff)}
+#pTray.rowm .cd{background:rgba(255,255,255,.045)}
+#pTray.rowm .cd.f{background:transparent}
+#pTray .cd{position:relative;z-index:1}
+#pTray .col .cd.ch.f{background:transparent;box-shadow:none} /* the plate is the focus */
+#pTray .col .cin{position:relative}
+#pTray .col .cpl{position:absolute;left:6px;right:6px;top:0;height:60px;border-radius:20px;background:rgba(255,255,255,.16);box-shadow:inset 4px 0 0 #b794ff;box-shadow:inset 4px 0 0 var(--acc2,#b794ff);opacity:0;z-index:0;pointer-events:none;will-change:transform,opacity;-webkit-transition:-webkit-transform .24s cubic-bezier(.2,.8,.2,1),opacity .2s ease;transition:transform .24s cubic-bezier(.2,.8,.2,1),opacity .2s ease}
+#pTray .col .cpl.on{opacity:1}
+#pTray .col .cl{padding:2px 4px}
+/* the subtitles tray keeps one size whatever arrives (no layout jumps, nothing clipped) */
+#pTray.k-subs{width:1140px}
+#pTray.k-subs .col{width:252px}
+#pTray.k-subs .in{padding:0 22px}
+#pTray .col .ch2 span{margin-left:8px;white-space:nowrap}
+/* across the gap between the two button groups: appear at the new place instead of sliding */
+#pFoc.ja{-webkit-animation:focA .24s ease;animation:focA .24s ease}
+#pFoc.jb{-webkit-animation:focB .24s ease;animation:focB .24s ease}
+@-webkit-keyframes focA{from{opacity:0}}@keyframes focA{from{opacity:0}}
+@-webkit-keyframes focB{from{opacity:0}}@keyframes focB{from{opacity:0}}

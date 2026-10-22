@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://simussu9-wq.github.io/stremiobrew/sitemap.xml
